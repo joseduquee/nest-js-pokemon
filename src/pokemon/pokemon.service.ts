@@ -10,12 +10,20 @@ import { Model } from 'mongoose';
 import { Pokemon } from './entities/pokemon.entity';
 import { InjectModel } from '@nestjs/mongoose';
 import { isValidObjectId } from 'mongoose';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PokemonService {
+ 
+  private defaultLimit: number;
+ 
   constructor(
     @InjectModel(Pokemon.name) private readonly pokemonModel: Model<Pokemon>,
-  ) {}
+    private readonly configService: ConfigService
+  ) { 
+    this.defaultLimit = configService.get<number>('defaultLimit');
+  }
 
   async create(createPokemonDto: CreatePokemonDto) {
     createPokemonDto.name = createPokemonDto.name.toLocaleLowerCase();
@@ -29,8 +37,33 @@ export class PokemonService {
     }
   }
 
-  findAll() {
-    return `This action returns all pokemon`;
+  async findAll(paginationDto: PaginationDto) {
+    
+    const { limit = this.defaultLimit, offset = 1 } = paginationDto;
+    const pagination = (offset - 1) * limit;
+
+    const [ total, pokemons ] = await Promise.all([
+      this.pokemonModel.countDocuments(),
+      this.pokemonModel.find()
+    // .limit( paginationDto.limit? paginationDto.limit : 10  )
+    // .skip( paginationDto.offset? paginationDto.offset : 0 )
+      .limit(limit)
+      .skip(pagination)
+      .sort({
+        no: 1
+      })
+      .select('-__v')
+    ])
+
+    const totalPages = Math.ceil((total * 1) / limit);
+    const paging = {
+      back: offset - 1,
+      current: offset,
+      next: offset >= totalPages ? totalPages : offset + 1,
+      total,
+      totalPages
+    };
+    return { pokemons, paging };
   }
 
   async findOne(term: string) {
