@@ -40,3 +40,19 @@ http://localhost:3000/api/v2/seed
 ## Stack
 * MongoDB
 * NestJS
+
+# Build Production Docker
+
+1. Create file 
+```
+.env.prod
+```
+2. Fill environments variables for production
+3. Create new image
+```
+docker-compose -f docker-compose.prod.yaml --env-file .env.prod up --build
+```
+help link
+```
+https://gist.github.com/Klerith/e7861738c93712840ab3a38674843490
+```
